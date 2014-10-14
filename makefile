@@ -1,7 +1,7 @@
 
 CXX=g++
 INCLUDES=
-FLAGS=-D__MACOSX_CORE__ -O3 -c
+FLAGS=-D__MACOSX_CORE__ -O3 -Wno-deprecated -c
 LIBS=-framework CoreAudio -framework CoreMIDI -framework CoreFoundation \
 	-framework IOKit -framework Carbon  -framework OpenGL \
 	-framework GLUT -framework Foundation \

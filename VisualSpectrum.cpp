@@ -47,6 +47,7 @@ void mouseFunc( int button, int state, int x, int y );
 #define MY_CHANNELS 1
 // for convenience
 #define MY_PIE 3.14159265358979
+#define HISTORY_SIZE 100
 
 // width and height
 long g_width = 1024;
@@ -61,12 +62,30 @@ long g_bufferSize;
 // window
 SAMPLE * g_window = NULL;
 long g_windowSize;
+float ** g_fftBufs = NULL;
 
 // global variables
 GLboolean g_fullscreen = FALSE;
 
 
+void initializeFftBufs() {
+  g_fftBufs = new float*[HISTORY_SIZE];
+  for (int i = 0; i < HISTORY_SIZE; i++) {
+    g_fftBufs[i] = new float[g_bufferSize];
+    for (int j = 0; j < g_bufferSize; j++) {
+      g_fftBufs[i][j] = 0;
+    }
+  }
+}
 
+void shiftRightFftBufs(complex* current) {
+  for (int i = HISTORY_SIZE-1; i > 0; i--) {
+    memmove(&g_fftBufs[i][0], &g_fftBufs[i-1][0], g_bufferSize * sizeof(float));
+  }
+  for (int i = 0; i < g_bufferSize; i++) {
+    g_fftBufs[0][i] = cmp_abs(current[i]);
+  }
+}
 
 //-----------------------------------------------------------------------------
 // name: callme()
@@ -151,6 +170,7 @@ int main( int argc, char ** argv )
     bufferBytes = bufferFrames * MY_CHANNELS * sizeof(SAMPLE);
     // allocate global buffer
     g_bufferSize = bufferFrames;
+    initializeFftBufs();
     g_buffer = new SAMPLE[g_bufferSize];
     g_fftBuf = new SAMPLE[g_bufferSize];
     memset( g_buffer, 0, sizeof(SAMPLE)*g_bufferSize );
@@ -253,7 +273,7 @@ void reshapeFunc( GLsizei w, GLsizei h )
     // load the identity matrix
     glLoadIdentity( );
     // position the view point
-    gluLookAt( 0.0f, 0.0f, 10.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f );
+    gluLookAt( 0.0f, 5.0f, 10.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f );
 }
 
 
@@ -418,33 +438,39 @@ void displayFunc( )
     // cast the result to a buffer of complex values (re,im)
     complex * cbuf = (complex *)g_fftBuf;
     
+    
     // define a starting point
-    x = -5;
     // compute increment
     xinc = ::fabs(x*2 / (g_windowSize / 2));
 
     // color
     glColor3f( .5, 1, .5 );
     
-    // save transformation state
-    glPushMatrix();
-        // translate
-        glTranslatef( 0, -2, 0 );
-        // start primitive
-        glBegin( GL_LINE_STRIP );
-            // loop over buffer to draw spectrum
-            for( int i = 0; i < g_windowSize/2; i++ )
-            {
-                // plot the magnitude,
-                // with scaling, and also "compression" via pow(...)
-                glVertex2f( x, 10*pow( cmp_abs(cbuf[i]), .5 ) );
-                // increment x
-                x += xinc;
-            }
-        // end primitive
-        glEnd();
-    // restore transformations
-    glPopMatrix();
+    for (int i = 0; i < HISTORY_SIZE; i++) {
+      x = -5;
+
+      // save transformation state
+      glPushMatrix();
+          // translate
+          glTranslatef( 0, -2, 0 );
+          // start primitive
+          glBegin( GL_LINE_STRIP );
+              
+              // loop over buffer to draw spectrum
+              for( int j = 0; j < g_windowSize/2; j++ )
+              {
+                  // plot the magnitude,
+                  // with scaling, and also "compression" via pow(...)
+                  glVertex3f( x, 10*pow( g_fftBufs[i][j], 0.5 ), -i*0.1);
+                  // increment x
+                  x += xinc;
+              }
+          // end primitive
+          glEnd();
+      // restore transformations
+      glPopMatrix();
+    }
+    shiftRightFftBufs(cbuf);
     
     // flush!
     glFlush( );
