@@ -27,7 +27,6 @@ using namespace std;
 #include <GL/glut.h>
 #endif
 
-#include "imageloader.h"
 
 
 

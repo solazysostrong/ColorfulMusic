@@ -7,7 +7,7 @@ LIBS=-framework CoreAudio -framework CoreMIDI -framework CoreFoundation \
 	-framework GLUT -framework Foundation \
 	-framework AppKit -lstdc++ -lm
 
-OBJS=   RtAudio.o ColorfulMusic.o chuck_fft.o x-vector3d.o x-fun.o imageloader.o
+OBJS=   RtAudio.o ColorfulMusic.o chuck_fft.o x-vector3d.o x-fun.o
 
 ColorfulMusic: $(OBJS)
 	$(CXX) -o ColorfulMusic $(OBJS) $(LIBS)
@@ -17,9 +17,6 @@ ColorfulMusic.o: ColorfulMusic.cpp RtAudio.h
 
 RtAudio.o: RtAudio.h RtAudio.cpp RtError.h
 	$(CXX) $(FLAGS) RtAudio.cpp
-
-imageloader.o: imageloader.h imageloader.cpp
-	$(CXX) $(FLAGS) imageloader.cpp
 
 chuck_fft.o: chuck_fft.h chuck_fft.c
 	$(CXX) $(FLAGS) chuck_fft.c
