@@ -151,7 +151,7 @@ class ParticleEngine {
 
     Vector3D currentVelocity() {
       float angle = XFun::rand2f(0, 6.28);
-      return Vector3D(2 * cos(angle), 2.0f, 2 * sin(angle));
+      return Vector3D(2.0 * cos(angle), 2.0f, 2.0 * sin(angle));
     }
 
     void createNewParticle(Particle *p) {
@@ -164,7 +164,7 @@ class ParticleEngine {
         p->color = getMixedRandomColor(g_color);
       else 
         p->color = g_color;
-      p->rot_radius = XFun::rand2f(g_maxAmp-1, g_maxAmp+2);
+      p->rot_radius = XFun::rand2f(0.1, g_maxAmp+2);
       p->rot_degrees = XFun::rand2f(0, 6.28);
       p->scale = PARTICLE_SIZE;
     }
@@ -174,19 +174,17 @@ class ParticleEngine {
         Particle *p = particles + i;
 
         if (isSpiral) {
-          p->rot_degrees += STEP_TIME;
+          p->rot_degrees += 3 * sin(500*STEP_TIME) * ((1-p->age)/p->lifespan) * 5 * STEP_TIME;
           if (isTornado) {
-            p->rot_radius += 5 * STEP_TIME;
-          } else {
-            p->rot_radius += XFun::rand2f(-10*STEP_TIME, 10*STEP_TIME);
-          }
+            p->rot_radius += 2 * STEP_TIME;
+          } 
           p->location.set(
               p->rot_radius * cos(p->rot_degrees), 
-              p->location.y += 10 * STEP_TIME, 
+              p->location.y += 4 * STEP_TIME,
               p->rot_radius * sin(p->rot_degrees)
           );
         } else {
-          p->location += p->velocity * STEP_TIME;
+          p->location += p->velocity * STEP_TIME * 2;
           /*
           if (isAmplitudeChanged()) 
             p->location += p->velocity * STEP_TIME * 3; 
@@ -234,6 +232,7 @@ class ParticleEngine {
     }
 
     void render() {
+      glTranslatef(0, -1.5, 0);
       vector<Particle*> particleVector;
       for (int i = 0; i < NUM_PARTICLES; i++) {
         particleVector.push_back(particles + i);
@@ -565,10 +564,10 @@ void help()
   cerr << "'a' - toggle high amplitude detection" << endl;
   cerr << "',' - make particles smaller" << endl;
   cerr << "'.' - make particles bigger" << endl;
-  cerr << "ARROW_UP' - make particles faster" << endl;
-  cerr << "ARROW_DOWN' - make particles slower" << endl;
-  cerr << "ARROW_LEFT' - make less particles" << endl;
-  cerr << "ARROW_RIGHT' - make more particles" << endl;
+  cerr << "'ARROW_UP' - make particles faster" << endl;
+  cerr << "'ARROW_DOWN' - make particles slower" << endl;
+  cerr << "'ARROW_LEFT' - make less particles" << endl;
+  cerr << "'ARROW_RIGHT' - make more particles" << endl;
   cerr << "----------------------------------------------------" << endl;
 }
 
@@ -630,6 +629,7 @@ void keyboardFunc( unsigned char key, int x, int y )
 
     case 'p':
       g_displayMode = PARTICLES;
+      isSpiral = false;
       break;
 
     case 'w':
@@ -743,7 +743,7 @@ void drawWaterFallMode()
     for( int j = 0; j < g_windowSize/2; j++ )
     {
       
-      if (isColorful) {
+      if (isColorful && j%50 == 0)  {
         Vector3D lineColor = getMixedRandomColor(g_colors[i]);
         glColor4f(lineColor.x, lineColor.y, lineColor.z, 0.9);
       }

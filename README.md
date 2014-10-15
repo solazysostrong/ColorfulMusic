@@ -2,6 +2,11 @@ Sundance Dots
 ===
 
 Visualize your music in several different modes! 
+[Website](ccrma.stanford.edu/~kzm/hw2.html)
+
+
+Description
+---
 
 Sundance Dots come in two modes. 
 One is the FFT Waterfall spectrum and one is a particle system. 
@@ -15,6 +20,7 @@ making the visual look entirely differently!
 
 Usage
 ---
+
 ```
 ----------------------------------------------------
 SUNDANCE (v1.0)
