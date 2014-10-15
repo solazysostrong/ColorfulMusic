@@ -2,7 +2,7 @@ Sundance Dots
 ===
 
 Visualize your music in several different modes! 
-[Website](ccrma.stanford.edu/~kzm/hw2.html)
+[Website](ccrma.stanford.edu/~kzm/hw2/index.html)
 
 
 Description
