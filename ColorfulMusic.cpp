@@ -100,6 +100,7 @@ bool isAmplitudeHighEnabled = false;
 bool isSpiral = false;
 bool isTornado = false;
 bool isBothEnabled = false;
+bool isAmplitudeTrackingEnabled = false;
 
 bool isAmplitudeChanged() {
   return (g_maxAmp - g_maxAmpIndex_old > AMPLITUDE_CHANGE_THRESHOLD);
@@ -244,6 +245,7 @@ class ParticleEngine {
         glColor4f(p->color.x, p->color.y, p->color.z, (1 - p->age/p->lifespan)+0.2);
 
         float size = p->scale;
+        if (isAmplitudeTrackingEnabled) size *= g_maxAmp;
         if (isAmplitudeHighEnabled && isAmplitudeHigh()) size *= 2;
         Vector3D pos = rotatedParticlePos(p->location);
 
@@ -562,6 +564,8 @@ void help()
   cerr << "'o' - toggle particles spiral mode" << endl;
   cerr << "'t' - toggle particles spiral tornado mode" << endl;
   cerr << "'a' - toggle high amplitude detection" << endl;
+  cerr << "'z' - toggle amplitude tracking" << endl;
+
   cerr << "',' - make particles smaller" << endl;
   cerr << "'.' - make particles bigger" << endl;
   cerr << "'ARROW_UP' - make particles faster" << endl;
@@ -653,6 +657,9 @@ void keyboardFunc( unsigned char key, int x, int y )
 
     case 'a':
       isAmplitudeHighEnabled = !isAmplitudeHighEnabled;
+      break;
+    case 'z':
+      isAmplitudeTrackingEnabled = !isAmplitudeTrackingEnabled;
       break;
     case '.':
       if (PARTICLE_SIZE < 0.2)
@@ -754,10 +761,13 @@ void drawWaterFallMode()
       // with scaling, and also "compression" via pow(...)
       GLfloat z = 5 - i * 0.4;
       glVertex3f( x, 0, z);
+      float amplitude = 1.0;
+      if (isAmplitudeTrackingEnabled)
+        amplitude *= g_maxAmp;
       if (isAmplitudeHighEnabled && isAmplitudeHigh())
-        glVertex3f( x, 1.4 * g_fftBufs[i][j], z);
+        glVertex3f( x, 1.4 * g_fftBufs[i][j] * amplitude, z);
       else 
-        glVertex3f( x, g_fftBufs[i][j], z);
+        glVertex3f( x, g_fftBufs[i][j] * amplitude, z);
       glEnd();
       // increment x
       glPopMatrix();
