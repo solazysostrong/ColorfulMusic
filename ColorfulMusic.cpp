@@ -29,8 +29,6 @@ using namespace std;
 
 
 
-
-
 //-----------------------------------------------------------------------------
 // function prototypes
 //-----------------------------------------------------------------------------
@@ -55,7 +53,7 @@ void mouseFunc( int button, int state, int x, int y );
 #define MY_CHANNELS 1
 // for convenience
 #define MY_PIE 3.14159265358979
-#define HISTORY_SIZE 100
+#define HISTORY_SIZE 150
 #define GRAVITY 3.0
 #define TIMER_MS 25
 #define NUM_FREQ_SEGMENTS 14
@@ -101,6 +99,7 @@ bool isColorful = false;
 bool isAmplitudeHighEnabled = false;
 bool isSpiral = false;
 bool isTornado = false;
+bool isBothEnabled = false;
 
 bool isAmplitudeChanged() {
   return (g_maxAmp - g_maxAmpIndex_old > AMPLITUDE_CHANGE_THRESHOLD);
@@ -246,7 +245,7 @@ class ParticleEngine {
         glColor4f(p->color.x, p->color.y, p->color.z, (1 - p->age/p->lifespan)+0.2);
 
         float size = p->scale;
-        if (isAmplitudeHighEnabled && isAmplitudeHigh()) size *= 3;
+        if (isAmplitudeHighEnabled && isAmplitudeHigh()) size *= 2;
         Vector3D pos = rotatedParticlePos(p->location);
 
         glTexCoord2f(0, 0);
@@ -547,7 +546,7 @@ void reshapeFunc( GLsizei w, GLsizei h )
 void help()
 {
   cerr << "----------------------------------------------------" << endl;
-  cerr << "COLOR MUSIC DOTS (v1.0)" << endl;
+  cerr << "SUNDANCE DOTS(v1.0)" << endl;
   cerr << "ALEXANDER HSU" << endl;
   cerr << "https://ccrma.stanford.edu/~kzm/hw2.html" << endl;
   cerr << "----------------------------------------------------" << endl;
@@ -663,6 +662,10 @@ void keyboardFunc( unsigned char key, int x, int y )
       if (PARTICLE_SIZE > 0.02)
         PARTICLE_SIZE /= 2;
       break;
+    case 'b':
+      isBothEnabled = !isBothEnabled;
+      NUM_PARTICLES = 100;
+      break;
   }
 
   // trigger redraw
@@ -749,7 +752,7 @@ void drawWaterFallMode()
       glBegin(GL_LINES);
       // plot the magnitude,
       // with scaling, and also "compression" via pow(...)
-      GLfloat z = 3 - i * 0.3;
+      GLfloat z = 5 - i * 0.4;
       glVertex3f( x, 0, z);
       if (isAmplitudeHighEnabled && isAmplitudeHigh())
         glVertex3f( x, 1.4 * g_fftBufs[i][j], z);
@@ -812,10 +815,12 @@ void displayFunc( )
 
   switch (g_displayMode) {
     case WATER_FALL:
+      if (isBothEnabled) drawParticlesMode();
       drawWaterFallMode();
       break;
     case PARTICLES:
       drawParticlesMode();
+      if (isBothEnabled) drawWaterFallMode();
       break;
     case WOBBLE:
       drawWobbleMode();
