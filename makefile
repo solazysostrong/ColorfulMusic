@@ -7,19 +7,29 @@ LIBS=-framework CoreAudio -framework CoreMIDI -framework CoreFoundation \
 	-framework GLUT -framework Foundation \
 	-framework AppKit -lstdc++ -lm
 
-OBJS=   RtAudio.o VisualSpectrum.o chuck_fft.o
+OBJS=   RtAudio.o ColorfulMusic.o chuck_fft.o x-vector3d.o x-fun.o imageloader.o
 
-VisualSpectrum: $(OBJS)
-	$(CXX) -o VisualSpectrum $(OBJS) $(LIBS)
+ColorfulMusic: $(OBJS)
+	$(CXX) -o ColorfulMusic $(OBJS) $(LIBS)
 
-VisualSpectrum.o: VisualSpectrum.cpp RtAudio.h
-	$(CXX) $(FLAGS) VisualSpectrum.cpp
+ColorfulMusic.o: ColorfulMusic.cpp RtAudio.h
+	$(CXX) $(FLAGS) ColorfulMusic.cpp
 
 RtAudio.o: RtAudio.h RtAudio.cpp RtError.h
 	$(CXX) $(FLAGS) RtAudio.cpp
 
+imageloader.o: imageloader.h imageloader.cpp
+	$(CXX) $(FLAGS) imageloader.cpp
+
 chuck_fft.o: chuck_fft.h chuck_fft.c
 	$(CXX) $(FLAGS) chuck_fft.c
 
+x-vector3d.o: x-vector3d.h x-vector3d.cpp
+		$(CXX) $(FLAGS) x-vector3d.cpp
+
+x-fun.o: x-fun.h x-fun.cpp
+		$(CXX) $(FLAGS) x-fun.cpp
+
+
 clean:
-	rm -f *~ *# *.o VisualSpectrum
+	rm -f *~ *# *.o ColorfulMusic

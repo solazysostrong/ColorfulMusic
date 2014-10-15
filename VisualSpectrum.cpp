@@ -11,6 +11,9 @@
 #include <math.h>
 #include <stdlib.h>
 #include <iostream>
+#include "x-vector3d.h"
+#include "x-fun.h"
+
 using namespace std;
 
 #ifdef __MACOSX_CORE__
@@ -48,6 +51,7 @@ void mouseFunc( int button, int state, int x, int y );
 // for convenience
 #define MY_PIE 3.14159265358979
 #define HISTORY_SIZE 100
+#define WALL_LINES_SIZE 200
 
 // width and height
 long g_width = 1024;
@@ -63,10 +67,16 @@ long g_bufferSize;
 SAMPLE * g_window = NULL;
 long g_windowSize;
 float ** g_fftBufs = NULL;
+float ** g_simpleBufs = NULL;
 
 // global variables
 GLboolean g_fullscreen = FALSE;
+float g_maxAmp = -1;
+float g_maxAmp_old = -1;
+int g_maxAmpIndex = -1;
+int g_maxAmpIndex_old = -1;
 
+Vector3D* g_wall_lines;
 
 void initializeFftBufs() {
   g_fftBufs = new float*[HISTORY_SIZE];
@@ -86,6 +96,32 @@ void shiftRightFftBufs(complex* current) {
     g_fftBufs[0][i] = cmp_abs(current[i]);
   }
 }
+
+void checkMaxAmplitudeIndex() {
+  g_maxAmp_old = g_maxAmp;
+  g_maxAmpIndex_old = g_maxAmpIndex;
+
+  SAMPLE maxAmp = -1;
+  int maxIndex = -1;
+  for (int i = 0; i < g_bufferSize; i++) {
+    if (g_fftBufs[0][i] > maxAmp) {
+      maxAmp = g_fftBufs[0][i];
+      maxIndex = i;
+    }
+  }
+  
+  g_maxAmp = maxAmp;
+  g_maxAmpIndex = maxIndex;
+}
+
+bool isFrequencyChanged() {
+  return (fabs(g_maxAmpIndex - g_maxAmpIndex_old) > PITCH_CHANGE_THRESHOLD); 
+}
+
+bool isAmplitudeChanged() {
+  return (fabs(g_maxAmp - g_maxAmpIndex_old > AMPLITUDE_CHANGE_THRESHOLD));
+}
+
 
 //-----------------------------------------------------------------------------
 // name: callme()
@@ -139,6 +175,25 @@ int main( int argc, char ** argv )
     // init gfx
     initGfx();
     
+    
+    g_wall_lines = new Vector3D[WALL_LINES_SIZE];
+    for (int i = 0; i < WALL_LINES_SIZE; i++) {
+      if (i > WALL_LINES_SIZE/2) {
+        if (i % 2) {
+          g_wall_lines[i].set(5, XFun::rand2f(-10, 10), 10);
+        } else {
+          g_wall_lines[i].set(5, g_wall_lines[i-1].y, 10);
+        }
+      } else {
+        if (i % 2) {
+          g_wall_lines[i].set(-5, XFun::rand2f(-10, 10), 10);
+        } else {
+          g_wall_lines[i].set(-5, g_wall_lines[i-1].y, 9);
+        }
+      }
+    }
+
+
     // let RtAudio print messages to stderr.
     audio.showWarnings( true );
     
@@ -222,7 +277,7 @@ cleanup:
 void initGfx()
 {
     // double buffer, use rgb color, enable depth buffer
-    glutInitDisplayMode( GLUT_DOUBLE | GLUT_RGB | GLUT_DEPTH );
+    glutInitDisplayMode( GLUT_DOUBLE | GLUT_RGBA | GLUT_DEPTH | GLUT_ALPHA);
     // initialize the window size
     glutInitWindowSize( g_width, g_height );
     // set the window postion
@@ -241,12 +296,17 @@ void initGfx()
     // set the mouse function - called on mouse stuff
     glutMouseFunc( mouseFunc );
     
+
     // set clear color
     glClearColor( 0, 0, 0, 1 );
+
     // enable color material
     glEnable( GL_COLOR_MATERIAL );
     // enable depth test
     glEnable( GL_DEPTH_TEST );
+    glColorMaterial(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glEnable(GL_BLEND);
 }
 
 
@@ -388,6 +448,9 @@ void idleFunc( )
 
 
 
+GLfloat r = 0;
+Vector3D wall_color, waterfall_color;
+long g_t = 0;
 //-----------------------------------------------------------------------------
 // Name: displayFunc( )
 // Desc: callback function invoked to draw the client area
@@ -444,9 +507,56 @@ void displayFunc( )
     xinc = ::fabs(x*2 / (g_windowSize / 2));
 
     // color
-    glColor3f( .5, 1, .5 );
-    
-    for (int i = 0; i < HISTORY_SIZE; i++) {
+    glLineWidth(2);
+
+
+    if (XFun::rand2f(0,10) > 9) {
+      wall_color.set(XFun::rand2f(0.1,0.9),XFun::rand2f(0.1,0.9),XFun::rand2f(0.1,0.9));
+    }
+    glColor4f(wall_color.x, wall_color.y, wall_color.z, 1);
+
+    glPushMatrix();
+      for (int i = 0; i < WALL_LINES_SIZE; i+=2) {
+        glBegin(GL_LINES);
+        //g_wall_lines[i+1].z = XFun::rand2f(1,10);
+        g_wall_lines[i+1].z -= 5*XFun::rand2f(0.1,1);
+        Vector3D p1 = g_wall_lines[i];
+        Vector3D p2 = g_wall_lines[i+1];
+        glVertex3f(p1.x, p1.y, p1.z);
+        glVertex3f(p2.x, p2.y, p2.z);
+        glEnd();
+
+        if (p2.z < -500) g_wall_lines[i+1].z = 9;
+        
+      }
+    glPopMatrix();
+   /* 
+    glPushMatrix();
+    glTranslatef(-5, 13, 0);
+    glScalef(0.01, 30, 1000);
+    glutSolidCube(1);
+    glPopMatrix();
+
+    glPushMatrix();
+    glTranslatef(5, 13, 0);
+    glScalef(0.01, 30, 1000);
+    glutSolidCube(1);
+    glPopMatrix();
+*/
+    for (int i = 0; i < 500; i++) {
+      
+    }
+    if (!(g_t % 100)) { 
+
+      waterfall_color.set(
+        XFun::rand2f(0.5,1),
+        XFun::rand2f(0.5,1),
+        XFun::rand2f(0.5,1)
+      );
+    }
+    for (int i = HISTORY_SIZE-1; i >= 0; i--) {
+      glColor4f(waterfall_color.x, waterfall_color.y, waterfall_color.z, 0.7);
+
       x = -5;
 
       // save transformation state
@@ -454,26 +564,31 @@ void displayFunc( )
           // translate
           glTranslatef( 0, -2, 0 );
           // start primitive
-          glBegin( GL_LINE_STRIP );
-              
               // loop over buffer to draw spectrum
               for( int j = 0; j < g_windowSize/2; j++ )
               {
+                  x += xinc;
+                  glPushMatrix();
+                  glBegin(GL_LINES);
                   // plot the magnitude,
                   // with scaling, and also "compression" via pow(...)
-                  glVertex3f( x, 10*pow( g_fftBufs[i][j], 0.5 ), -i*0.1);
+                  glVertex3f( x, 0, 3-i);
+                  glVertex3f( x, 50*pow( g_fftBufs[i][j], 0.5 ), 3-i);
+                  glEnd();
                   // increment x
-                  x += xinc;
+                  glPopMatrix();
               }
+
           // end primitive
-          glEnd();
       // restore transformations
       glPopMatrix();
     }
     shiftRightFftBufs(cbuf);
+    glDepthMask(GL_TRUE);
     
     // flush!
     glFlush( );
     // swap the double buffer
     glutSwapBuffers( );
+    g_t += 1;
 }
